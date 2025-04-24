@@ -1,0 +1,4 @@
+devices:
+  "client": "192.168.137.107"
+  "server": "192.168.137.178"
+server: "server"

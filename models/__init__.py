@@ -1,0 +1,34 @@
+from torch import nn as nn
+from models.guide_depth import GuideDepthModel
+from models.repmono_depth import RepMonoSupervisedModel, RepMonoUnsupervisedModel
+from models.hybrid import HybridModel
+import sys
+import os
+
+# Add the LiteGfm directory to the Python path
+sys.path.append(os.path.join(os.path.dirname(os.path.dirname(__file__)), 
+                             "Code of LiteGfm"))
+
+from models.litegfm_adapter import LiteGfmModel
+
+SUPPORTED_MODELS = {
+    "guidedepth": GuideDepthModel,
+    "repmono-u": RepMonoUnsupervisedModel,
+    "repmono-s": RepMonoSupervisedModel,
+    "hybrid": HybridModel,
+    "litegfm": LiteGfmModel
+}
+
+
+def get_model(model_name: str, *args, **kwargs) -> nn.Module:
+    """
+    Returns the model class based on the given name.
+    :param model_name: Name of the model (e.g., "guidedepth", "repmono").
+    :return: Model class if found, else raises an error.
+    """
+    if model_name.lower() in SUPPORTED_MODELS:
+        return SUPPORTED_MODELS[model_name](**kwargs)
+    else:
+        raise ValueError(
+            f"Unsupported model: {model_name}. Choose from {list(SUPPORTED_MODELS.keys())}."
+        )
