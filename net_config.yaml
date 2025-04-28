@@ -1,4 +1,4 @@
 devices:
-  "client": "192.168.137.107"
-  "server": "192.168.137.178"
+  "client": "100.116.145.122"
+  "server": "100.79.27.22"
 server: "server"
