@@ -11,13 +11,6 @@ from jetbot_code.bot import Bot
 from PEERNet_fl.peernet.networks import ZMQ_Pair
 from jetbot import Camera
 
-def get_hybrid_guidedepth_model(device, weights_path):
-    model = HybridGuideDepthModel(pretrained=False)
-    model.load_state_dict(torch.load(weights_path, map_location=device))
-    model.to(device)
-    model.eval()
-    return model
-
 class FLClient:
     """
     A client for federated learning, responsible for local training and model updates.
@@ -51,9 +44,7 @@ class FLClient:
         self.device = torch.device(
             'cuda:0' if torch.cuda.is_available() else 'cpu')
         if model_name.lower() == 'hybrid':
-            if guidedepth_weights is None:
-                raise ValueError("Path to GuideDepth weights must be provided for the hybrid model.")
-            self.model = get_hybrid_guidedepth_model(self.device, guidedepth_weights)
+            self.model = HybridGuideDepthModel(pretrained=False).to(self.device)
         else:
             self.model = get_model(model_name, **model_params).to(self.device)
         self.bot = Bot()
