@@ -6,9 +6,17 @@ from loguru import logger
 
 from training.trainer import Trainer
 from models import get_model
+from models.hybrid_guidedepth import HybridGuideDepthModel
 from jetbot_code.bot import Bot
 from PEERNet_fl.peernet.networks import ZMQ_Pair
 from jetbot import Camera
+
+def get_hybrid_guidedepth_model(device, weights_path):
+    model = HybridGuideDepthModel(pretrained=False)
+    model.load_state_dict(torch.load(weights_path, map_location=device))
+    model.to(device)
+    model.eval()
+    return model
 
 class FLClient:
     """
@@ -30,7 +38,8 @@ class FLClient:
                  local_epochs: int = 4,
                  lr: float = 1e-4,
                  model_params=None,
-                 loss_func=None):
+                 loss_func=None,
+                 guidedepth_weights: str = None):
 
         # Establish connection to server
         self.device_name = device_name
@@ -41,7 +50,12 @@ class FLClient:
         # Initialize Model
         self.device = torch.device(
             'cuda:0' if torch.cuda.is_available() else 'cpu')
-        self.model = get_model(model_name, **model_params).to(self.device)
+        if model_name.lower() == 'hybrid':
+            if guidedepth_weights is None:
+                raise ValueError("Path to GuideDepth weights must be provided for the hybrid model.")
+            self.model = get_hybrid_guidedepth_model(self.device, guidedepth_weights)
+        else:
+            self.model = get_model(model_name, **model_params).to(self.device)
         self.bot = Bot()
         self.camera = Camera.instance(width=320, height=240)
         self.direction = 1 #1 = right, flip every iteration
