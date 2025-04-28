@@ -6,6 +6,7 @@ from loguru import logger
 
 from training.trainer import Trainer
 from models import get_model
+from models.hybrid import HybridModel
 from models.hybrid_guidedepth import HybridGuideDepthModel
 from jetbot_code.bot import Bot
 from PEERNet_fl.peernet.networks import ZMQ_Pair
@@ -44,7 +45,8 @@ class FLClient:
         self.device = torch.device(
             'cuda:0' if torch.cuda.is_available() else 'cpu')
         if model_name.lower() == 'hybrid':
-            self.model = HybridGuideDepthModel(pretrained=False).to(self.device)
+            # Use HybridModel wrapper, and only update its depth_model (HybridGuideDepthModel) weights
+            self.model = HybridModel(**(model_params or {})).to(self.device)
         else:
             self.model = get_model(model_name, **model_params).to(self.device)
         self.bot = Bot()
@@ -74,8 +76,13 @@ class FLClient:
             k: v.to(self.device)
             for k, v in server_gradients.items()
         }
-        self.model.load_state(server_gradients)
-        logger.info("Succesfully received model from server")
+        if hasattr(self.model, 'depth_model'):
+            # Only update the depth_model (HybridGuideDepthModel) weights
+            self.model.depth_model.load_state_dict(server_gradients)
+            logger.info("Succesfully loaded weights into HybridGuideDepthModel (depth_model) from server")
+        else:
+            self.model.load_state(server_gradients)
+            logger.info("Succesfully loaded weights into model from server")
 
     def _upload_gradients(self):
         # Send model weights to server
